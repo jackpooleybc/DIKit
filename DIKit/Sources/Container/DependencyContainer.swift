@@ -18,8 +18,8 @@ public final class DependencyContainer {
 
     // MARK: - Properties
     internal var bootstrapped = false
-    internal var componentStack = ComponentStack()
-    internal var instanceStack = InstanceStack()
+    internal var componentStack = Atomic(ComponentStack())
+    internal var instanceStack = Atomic(InstanceStack())
     private let lock = NSRecursiveLock()
 
     internal static var root: DependencyContainer?
@@ -39,7 +39,7 @@ public final class DependencyContainer {
     /// - Returns: The final `DependencyContainer`.
     public static func derive(from containers: DependencyContainer...) -> DependencyContainer {
         return DependencyContainer(containers.reduce(into: ComponentStack()) { (result, container) in
-            result.merge(container.componentStack) { (old, new) -> ComponentProtocol in
+            result.merge(container.componentStack.value) { (old, new) -> ComponentProtocol in
                 fatalError("A `Component` was declared at least twice `\(old)` -> `\(new)`.")
             }
         })
@@ -53,7 +53,7 @@ public final class DependencyContainer {
     /// - Returns: The final `DependencyContainer`.
     public static func derive(from containers: [DependencyContainer]) -> DependencyContainer {
         return DependencyContainer(containers.reduce(into: ComponentStack()) { (result, container) in
-            result.merge(container.componentStack) { (old, new) -> ComponentProtocol in
+            result.merge(container.componentStack.value) { (old, new) -> ComponentProtocol in
                 fatalError("A `Component` was declared at least twice `\(old)` -> `\(new)`.")
             }
         })
@@ -73,7 +73,7 @@ public final class DependencyContainer {
 
     // MARK: - Internal methods
     init(_ componentStack: ComponentStack) {
-        self.componentStack = componentStack
+        self.componentStack = Atomic(componentStack)
         self.bootstrapped = true
     }
 

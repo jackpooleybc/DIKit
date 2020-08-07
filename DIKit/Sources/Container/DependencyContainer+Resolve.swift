@@ -14,17 +14,19 @@ extension DependencyContainer {
     /// - Returns: The resolved `Optional<Component<T>>`.
     func _resolve<T>(tag: AnyHashable? = nil) -> T? {
         let identifier = ComponentIdentifier(tag: tag, type: T.self)
-        guard let foundComponent = self.componentStack[identifier] else {
+        guard let foundComponent = self.componentStack.value[identifier] else {
             return nil
         }
         if foundComponent.lifetime == .factory {
             return foundComponent.componentFactory() as? T
         }
-        if let instanceOfComponent = self.instanceStack[identifier] as? T {
+        if let instanceOfComponent = self.instanceStack.value[identifier] as? T {
             return instanceOfComponent
         }
         let instance = foundComponent.componentFactory() as! T
-        self.instanceStack[identifier] = instance
+        self.instanceStack.mutate { stack in
+            stack[identifier] = instance
+        }
         return instance
     }
 
@@ -38,7 +40,7 @@ extension DependencyContainer {
     /// - Returns: `Bool` whether `Component<T>` is resolvable or not.
     func resolvable<T>(type: T.Type, tag: AnyHashable? = nil) -> Bool {
         let identifier = ComponentIdentifier(tag: tag, type: T.self)
-        return self.componentStack[identifier] != nil
+        return self.componentStack.value[identifier] != nil
     }
 
     /// Resolves a `Component<T>`.
