@@ -10,29 +10,32 @@
 /// A property wrapper (SE-0258) to make a `Component` lazily injectable
 /// through `@LazyInject var variableName: Component`.
 @propertyWrapper
-public enum LazyInject<Component> {
-    case unresolved(() -> Component)
-    case resolved(Component)
+public final class LazyInject<Component> {
+    
+    private enum State<Component> {
+        case unresolved(() -> Component)
+        case resolved(Component)
+    }
+    
+    public var wrappedValue: Component {
+        switch state.value {
+        case .resolved(let component):
+            return component
+        case .unresolved(let resolver):
+            let component = resolver()
+            state.mutate { $0 = .resolved(component) }
+            return component
+        }
+    }
+    
+    private let state: Atomic<State<Component>>
 
     public init() {
-        self = .unresolved({ resolve() })
+        state = Atomic(.unresolved({ resolve() }))
     }
 
     public init(tag: AnyHashable? = nil) {
-        self = .unresolved({ resolve(tag: tag) })
-    }
-
-    public var wrappedValue: Component {
-        mutating get {
-            switch self {
-            case .unresolved(let resolver):
-                let component = resolver()
-                self = .resolved(component)
-                return component
-            case .resolved(let component):
-                return component
-            }
-        }
+        state = Atomic(.unresolved({ resolve(tag: tag) }))
     }
 }
 
@@ -54,28 +57,31 @@ public struct Inject<Component> {
 /// A property wrapper (SE-0258) to make a `Optional<Component>` injectable
 /// through `@OptionalInject var variableName: Component?`. Lazy by default.
 @propertyWrapper
-public enum OptionalInject<Component> {
-    case unresolved(() -> Component?)
-    case resolved(Component?)
+public final class OptionalInject<Component> {
+    
+    private enum State<Component> {
+        case unresolved(() -> Component?)
+        case resolved(Component?)
+    }
+    
+    public var wrappedValue: Component? {
+        switch state.value {
+        case .resolved(let component):
+            return component
+        case .unresolved(let resolver):
+            let component = resolver()
+            state.mutate { $0 = .resolved(component) }
+            return component
+        }
+    }
+    
+    private let state: Atomic<State<Component>>
 
     public init() {
-        self = .unresolved({ resolveOptional() })
+        state = Atomic(.unresolved({ resolveOptional() }))
     }
 
     public init(tag: AnyHashable? = nil) {
-        self = .unresolved({ resolveOptional(tag: tag) })
-    }
-
-    public var wrappedValue: Component? {
-        mutating get {
-            switch self {
-            case .unresolved(let resolver):
-                let component = resolver()
-                self = .resolved(component)
-                return component
-            case .resolved(let component):
-                return component
-            }
-        }
+        state = Atomic(.unresolved({ resolveOptional(tag: tag) }))
     }
 }
